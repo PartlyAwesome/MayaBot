@@ -20,9 +20,9 @@ struct Handler;
 impl EventHandler for Handler {
     // this only runs if there is no client.with_framework........
     fn message(&self, ctx: Context, msg: Message) {
-        match msg.content.as_str() {
+        match msg.content.as_ref() {
             "!ping" => send_message(&ctx, msg, "Second pong"),
-            "!shard" => send_message(&ctx, msg, format!("Shard {}", ctx.shard_id).as_str()),
+            "!shard" => send_message(&ctx, msg, format!("Shard {}", ctx.shard_id)),
             "!dm" => try_send_dm(&ctx, msg, "DM test!"),
             _ => (),
         }
