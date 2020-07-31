@@ -1,12 +1,15 @@
 extern crate exitcode;
 
-use serenity::client::Client;
-use serenity::framework::standard::{
-    macros::{command, group},
-    CommandResult, StandardFramework,
+use serenity::{
+    client::Client,
+    framework::standard::{
+        macros::{command, group},
+        CommandResult, StandardFramework,
+    },
+    model::{channel::Message, gateway::Ready},
+    prelude::{Context, EventHandler},
+    utils::MessageBuilder,
 };
-use serenity::model::{channel::Message, gateway::Ready};
-use serenity::prelude::{Context, EventHandler};
 
 #[group]
 #[commands(ping)]
@@ -21,9 +24,21 @@ impl EventHandler for Handler {
     // this only runs if there is no client.with_framework........
     fn message(&self, ctx: Context, msg: Message) {
         match msg.content.as_ref() {
-            "!ping" => send_message(&ctx, msg, "Second pong"),
-            "!shard" => send_message(&ctx, msg, format!("Shard {}", ctx.shard_id)),
+            "!ping" => send_message(&ctx, &msg, "Second pong"),
+            "!shard" => send_message(&ctx, &msg, format!("Shard {}", ctx.shard_id)),
             "!dm" => try_send_dm(&ctx, msg, "DM test!"),
+            "!build" => {
+                let mut mb = MessageBuilder::new();
+                mb.push("User ")
+                    .mention(&msg.author)
+                    .push(" used !build; channel is ");
+                match msg.channel(&ctx) {
+                    Some(channel) => mb.mention(&channel),
+                    None => mb.push("a channel"),
+                };
+                let content = mb.build();
+                send_message(&ctx, &msg, content);
+            }
             _ => (),
         }
     }
@@ -33,9 +48,9 @@ impl EventHandler for Handler {
     }
 }
 
-fn try_send_dm(ctx: &Context, msg: Message, text: &str) {
+fn try_send_dm(ctx: &Context, msg: Message, content: impl std::fmt::Display) {
     let dm = msg.author.dm(ctx, |m| {
-        m.content(text);
+        m.content(content);
 
         return m;
     });
@@ -44,8 +59,8 @@ fn try_send_dm(ctx: &Context, msg: Message, text: &str) {
     }
 }
 
-fn send_message(ctx: &Context, msg: Message, text: &str) {
-    if let Err(why) = msg.channel_id.say(&ctx.http, text) {
+fn send_message(ctx: &Context, msg: &Message, content: impl std::fmt::Display) {
+    if let Err(why) = msg.channel_id.say(&ctx.http, content) {
         println!("Err msg: {:?}", why);
     }
 }
