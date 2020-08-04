@@ -12,7 +12,7 @@ use serenity::{
 };
 
 #[group]
-#[commands(ping)]
+#[commands(mping, rping, build, shard, dm)]
 struct General;
 
 use std::env;
@@ -21,26 +21,8 @@ use std::process;
 struct Handler;
 
 impl EventHandler for Handler {
-    // this only runs if there is no client.with_framework........
     fn message(&self, ctx: Context, msg: Message) {
-        match msg.content.as_ref() {
-            "!ping" => send_message(&ctx, &msg, "Second pong"),
-            "!shard" => send_message(&ctx, &msg, format!("Shard {}", ctx.shard_id)),
-            "!dm" => try_send_dm(&ctx, msg, "DM test!"),
-            "!build" => {
-                let mut mb = MessageBuilder::new();
-                mb.push("User ")
-                    .mention(&msg.author)
-                    .push(" used !build; channel is ");
-                match msg.channel(&ctx) {
-                    Some(channel) => mb.mention(&channel),
-                    None => mb.push("a channel"),
-                };
-                let content = mb.build();
-                send_message(&ctx, &msg, content);
-            }
-            _ => (),
-        }
+        // handle standard messages?
     }
 
     fn ready(&self, _: Context, ready: Ready) {
@@ -48,7 +30,7 @@ impl EventHandler for Handler {
     }
 }
 
-fn try_send_dm(ctx: &Context, msg: Message, content: impl std::fmt::Display) {
+fn try_send_dm(ctx: &Context, msg: &Message, content: impl std::fmt::Display) {
     let dm = msg.author.dm(ctx, |m| {
         m.content(content);
 
@@ -74,9 +56,11 @@ fn main() {
     }
     let token = &args[1];
     let mut client = Client::new(token, Handler).expect("Error creating client");
-    //client.with_framework(StandardFramework::new()
-    //    .configure(|c| c.prefix("~")) // set the bot's prefix to "~"
-    //    .group(&GENERAL_GROUP));
+    client.with_framework(
+        StandardFramework::new()
+            .configure(|c| c.prefix("~")) // set the bot's prefix to "~"
+            .group(&GENERAL_GROUP),
+    );
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start() {
@@ -85,8 +69,42 @@ fn main() {
 }
 
 #[command]
-fn ping(ctx: &mut Context, msg: &Message) -> CommandResult {
+fn mping(ctx: &mut Context, msg: &Message) -> CommandResult {
     msg.reply(ctx, "Pong!")?;
 
+    Ok(())
+}
+
+#[command]
+fn rping(ctx: &mut Context, msg: &Message) -> CommandResult {
+    send_message(&ctx, &msg, "Second pong");
+
+    Ok(())
+}
+
+#[command]
+fn build(ctx: &mut Context, msg: &Message) -> CommandResult {
+    let mut mb = MessageBuilder::new();
+    mb.push("User ")
+        .mention(&msg.author)
+        .push(" used !build; channel is ");
+    match msg.channel(&ctx) {
+        Some(channel) => mb.mention(&channel),
+        None => mb.push("a channel"),
+    };
+    let content = mb.build();
+    send_message(&ctx, &msg, content);
+    Ok(())
+}
+
+#[command]
+fn shard(ctx: &mut Context, msg: &Message) -> CommandResult {
+    send_message(&ctx, &msg, format!("Shard {}", ctx.shard_id));
+    Ok(())
+}
+
+#[command]
+fn dm(ctx: &mut Context, msg: &Message) -> CommandResult {
+    try_send_dm(&ctx, msg, "DM test!");
     Ok(())
 }
