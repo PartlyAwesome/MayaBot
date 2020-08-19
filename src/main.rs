@@ -159,10 +159,14 @@ fn slow(ctx: &mut Context, msg: &Message, mut args: Args) -> CommandResult {
         }
     } else {
         match msg.channel(&ctx) {
-            Some(Channel::Guild(channel)) => format!(
-                "Current slow({})",
-                channel.read().slow_mode_rate.unwrap_or(0)
-            ),
+            Some(Channel::Guild(channel)) => {
+                let rate = channel.read().slow_mode_rate.unwrap_or(0);
+                if rate == 0 {
+                    "No slow mode".to_string()
+                } else {
+                    format!("Slow mode: {} seconds", rate)
+                }
+            }
             _ => "Error finding channel".to_string(),
         }
     };
